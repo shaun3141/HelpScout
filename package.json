@@ -1,6 +1,6 @@
 {
   "name": "helpscout-2.0",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "I built this Node.js SDK to wrap HelpScout's Mailbox 2.0 API methods to speed up development and get us building the fun stuff faster.",
   "main": "helpscout.js",
   "scripts": {
