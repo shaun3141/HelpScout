@@ -1,0 +1,26 @@
+{
+  "name": "helpscout-2.0",
+  "version": "1.0.0",
+  "description": "I built this Node.js SDK to wrap HelpScout's Mailbox 2.0 API methods to speed up development and get us building the fun stuff faster.",
+  "main": "helpscout.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shaun3141/HelpScout.git"
+  },
+  "keywords": [
+    "helpscout",
+    "mailbox",
+    "api",
+    "node",
+    "nodejs"
+  ],
+  "author": "Shaun VanWeelden",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/shaun3141/HelpScout/issues"
+  },
+  "homepage": "https://github.com/shaun3141/HelpScout#readme"
+}
