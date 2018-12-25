@@ -43,6 +43,7 @@ A full test suite is available for your convenience.
 
     npm test
 The output should look something like this:
+
 ![all tests passing](https://i.imgur.com/OonVJOE.png)
 
 ## Async/Await, Promise, and Callback Support
