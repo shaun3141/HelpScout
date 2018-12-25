@@ -4,7 +4,7 @@
   "description": "I built this Node.js SDK to wrap HelpScout's Mailbox 2.0 API methods to speed up development and get us building the fun stuff faster.",
   "main": "helpscout.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -22,5 +22,11 @@
   "bugs": {
     "url": "https://github.com/shaun3141/HelpScout/issues"
   },
-  "homepage": "https://github.com/shaun3141/HelpScout#readme"
+  "homepage": "https://github.com/shaun3141/HelpScout#readme",
+  "devDependencies": {
+    "mocha": "^5.2.0"
+  },
+  "dependencies": {
+    "request": "^2.88.0"
+  }
 }

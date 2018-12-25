@@ -1,133 +1,175 @@
 var request = require('request');
 
 // Constructor
-var HelpScoutClient = function(appCreds){
+const HelpScoutClient = function(appCreds){
   this.appCreds = appCreds;
 };
 
 // Application Vars
 const BASE_URL = 'https://api.helpscout.net/v2/';
-var accessToken = {
-  expiresAt: 0
-};
 const RATE_LIMIT = 200; // tightest rate limit possible is 150 ms between calls
 
+// Global Vars
+let accessToken = {
+  expiresAt: 0
+};
+
 // Methods
-HelpScoutClient.prototype.getAccessToken = function(errCb, cb){
-  authenticate(this.appCreds, errCb, cb);
+HelpScoutClient.prototype.getAccessToken = function (errCb, cb) {
+  let appCreds = this.appCreds;
+
+  return new Promise(async function(resolve, reject) {
+    try {
+      await authenticate(appCreds);
+      cb ? cb(accessToken) : resolve(accessToken);
+    } catch (e) {
+      errCb ? errCb(e): reject(Error(e));
+    }
+  });
 }
 
 HelpScoutClient.prototype.rawApi = function(method, url, data, errCb, cb){
-  makeAuthenticatedApiRequest(this.appCreds, method, url, data, errCb, cb);
+  return makeAuthenticatedApiRequest(this.appCreds, method, url, data, errCb, cb);
 }
 
-HelpScoutClient.prototype.create = function(obj, data, parentObjType, parentObjId, errCb, cb){
-  var parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
-  makeAuthenticatedApiRequest(
-    this.appCreds,
-    'POST',
-    BASE_URL + parentUrl + obj,
-    data,
-    errCb,
-    function (res) {
-      cb(res.headers['resource-id']);
-    }
-  );
-}
+HelpScoutClient.prototype.create = function (obj, data, parentObjType, parentObjId, errCb, cb) {
+  let parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  let appCreds = this.appCreds;
 
-HelpScoutClient.prototype.list = function(obj, queryParams, parentObjType, parentObjId, errCb, cb){
-  var parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
-  var appCreds = this.appCreds;
-
-  var numPages = 1;
-  var pageNum = 1;
-  var isProcessing = false;
-  var objArr = [];
-
-  var pager = setInterval(function() {
-    if (pageNum > numPages) {
-      clearInterval(pager);
-      cb(objArr);
-    } else if (isProcessing) {
-      // do nothing, a request is currently pending
-    } else {
-      var pageQuery = '?page=' + pageNum;
-      isProcessing = true;
-      makeAuthenticatedApiRequest(
+  return new Promise(async function(resolve, reject) {
+    try {
+      let resourceRes = await makeAuthenticatedApiRequest(
         appCreds,
-        'GET',
-        BASE_URL + parentUrl + obj + (queryParams ? pageQuery + '&' + queryParams : pageQuery),
-        '',
-        errCb,
-        function(res) {
+        'POST',
+        BASE_URL + parentUrl + obj,
+        data,
+      );
+      cb ? cb(resourceRes.headers['resource-id']) : resolve(resourceRes.headers['resource-id']);
+    } catch (e) {
+      errCb ? errCb(e): reject(Error(e));
+    }
+  });
+}
+
+HelpScoutClient.prototype.list = function (obj, queryParams, parentObjType, parentObjId, errCb, cb) {
+  let parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  let appCreds = this.appCreds;
+
+  let numPages = 1;
+  let pageNum = 1;
+  let isProcessing = false;
+  let objArr = [];
+
+  return new Promise(function(resolve, reject) {
+    let pager = setInterval(async function() {
+      if (pageNum > numPages) {
+        clearInterval(pager);
+        cb ? cb(objArr) : resolve(objArr);
+      } else if (isProcessing) {
+        // do nothing, a request is currently pending
+      } else {
+        try {
+          let pageQuery = '?page=' + pageNum;
+          isProcessing = true;
+          let result = await makeAuthenticatedApiRequest(
+            appCreds,
+            'GET',
+            BASE_URL + parentUrl + obj + (queryParams ? pageQuery + '&' + queryParams : pageQuery),
+            ''
+          );
           pageNum++;
           isProcessing = false;
-          numPages = JSON.parse(res.body)["page"]["totalPages"];
-          objArr = objArr.concat(JSON.parse(res.body)["_embedded"][obj]);
+          numPages = JSON.parse(result.body)["page"]["totalPages"];
+          objArr = objArr.concat(JSON.parse(result.body)["_embedded"][obj]);
+        } catch (e) {
+          clearInterval(pager);
+          errCb ? errCb(e): reject(Error(e));
         }
+      }
+    }, RATE_LIMIT);
+  });
+}
+
+HelpScoutClient.prototype.get = function (obj, objId, embeddables, subObj, errCb, cb) {
+  let embedQueryStr = embeddables ? '?embed=' + embeddables.join('&embed=') : '';
+  let appCreds = this.appCreds;
+  subObj = subObj ? '/' + subObj : '';
+
+  return new Promise(async function(resolve, reject) {
+    try {
+      let resourceRes = await makeAuthenticatedApiRequest(
+        appCreds,
+        'GET',
+        BASE_URL + obj + '/' + objId + subObj + embedQueryStr,
+        ''
       );
+      let body = resourceRes.body ? JSON.parse(resourceRes.body) : undefined;
+      let objGotten = body && body._embedded ? body._embedded[subObj] : body;
+      cb ? cb(objGotten) : resolve(objGotten);
+    } catch (e) {
+      errCb ? errCb(e): reject(Error(e));
     }
-  }, RATE_LIMIT);
+  });
 }
 
-HelpScoutClient.prototype.get = function(obj, objId, embeddables, subObj, errCb, cb){
-  var embedQueryStr = embeddables ? '?embed=' + embeddables.join('&embed=') : '';
-  var subObj = subObj ? '/' + subObj : '';
-  makeAuthenticatedApiRequest(
-    this.appCreds,
-    'GET',
-    BASE_URL + obj + '/' + objId + subObj + embedQueryStr,
-    '',
-    errCb,
-    function (res) {
-      cb(res.body ? JSON.parse(res.body) : undefined);
+HelpScoutClient.prototype.updatePut = function (obj, objId, data, parentObjType, parentObjId, errCb, cb) {
+  let parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  let appCreds = this.appCreds;
+
+  return new Promise(async function(resolve, reject) {
+    try {
+      await makeAuthenticatedApiRequest(
+        appCreds,
+        'PUT',
+        BASE_URL + parentUrl + obj + '/' + objId,
+        data
+      );
+      cb ? cb() : resolve(); // nothing to return
+    } catch (e) {
+      errCb ? errCb(e): reject(Error(e));
     }
-  );
+  });
 }
 
-HelpScoutClient.prototype.updatePut = function(obj, objId, data, parentObjType, parentObjId, errCb, cb){
-  var parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
-  makeAuthenticatedApiRequest(
-    this.appCreds,
-    'PUT',
-    BASE_URL + parentUrl + obj + '/' + objId,
-    data,
-    errCb,
-    function (res) {
-      cb(); // nothing to return
+HelpScoutClient.prototype.updatePatch = function (obj, objId, data, parentObjType, parentObjId, errCb, cb) {
+  let parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  let appCreds = this.appCreds;
+
+  return new Promise(async function(resolve, reject) {
+    try {
+      await makeAuthenticatedApiRequest(
+        appCreds,
+        'PATCH',
+        BASE_URL + parentUrl + obj + '/' + objId,
+        data
+      );
+      cb ? cb() : resolve(); // nothing to return
+    } catch (e) {
+      errCb ? errCb(e): reject(Error(e));
     }
-  );
+  });
 }
 
-HelpScoutClient.prototype.updatePatch = function(obj, objId, data, parentObjType, parentObjId, errCb, cb){
-  var parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
-  makeAuthenticatedApiRequest(
-    this.appCreds,
-    'PATCH',
-    BASE_URL + parentUrl + obj + '/' + objId,
-    data,
-    errCb,
-    function (res) {
-      cb(); // nothing to return
+HelpScoutClient.prototype.delete = function (obj, objId, errCb, cb) {
+  let appCreds = this.appCreds;
+
+  return new Promise(async function(resolve, reject) {
+    try {
+      await makeAuthenticatedApiRequest(
+        appCreds,
+        'DELETE',
+        BASE_URL + obj + '/' + objId,
+        ''
+      );
+      cb ? cb() : resolve(); // nothing to return
+    } catch (e) {
+      errCb ? errCb(e): reject(Error(e));
     }
-  );
+  });
 }
 
-HelpScoutClient.prototype.delete = function(obj, objId, errCb, cb){
-  makeAuthenticatedApiRequest(
-    this.appCreds,
-    'DELETE',
-    BASE_URL + obj + '/' + objId,
-    '',
-    errCb,
-    function (res) {
-      cb(); // nothing to return
-    }
-  );
-}
-
-HelpScoutClient.prototype.addNoteToConversation = function(conversationId, text, errCb, cb){
-  this.create(
+HelpScoutClient.prototype.addNoteToConversation = function (conversationId, text, errCb, cb) {
+  return this.create(
     'notes', { "text" : text}, "conversations", conversationId, errCb, cb
   );
 }
@@ -138,62 +180,79 @@ module.exports = HelpScoutClient;
 // ==== HELPERS ====
 // =================
 
-var authenticate = function(appCreds, errCb, authenticatedCb){
-    // TODO: Have a singleton class to prevent multiple tokens being generated
-    // if multiple authenticate calls occur before first token comes back
+let authenticate = function(appCreds) {
+  // TODO: Have a true singleton class to prevent multiple tokens being generated
+  // will happen if multiple authenticate calls occur before first token comes back
+  return new Promise(async function(resolve, reject) {
     if (accessToken.expiresAt > Date.now()) {
       // Access Token should still be valid, do CB
-      authenticatedCb(accessToken);
+      resolve(accessToken);
     } else {
       // Get access token for the first time and callback
-      getNewAccessToken(appCreds, errCb, authenticatedCb);
-    }
-}
-
-var getNewAccessToken = function(appCreds, errCb, authenticatedCb) {
-  // Get access token for the first time and callback
-  var authStr = 'grant_type=client_credentials' +
-                '&client_id=' + appCreds.clientId +
-                '&client_secret=' + appCreds.clientSecret;
-
-  request({
-    url: 'https://api.helpscout.net/v2/oauth2/token?' + authStr,
-    method: 'POST'
-  }, function (err, res, body) {
-    if (err || res.statusCode >= 400) {
-      // either log the error returned, or the body if status != success
-      errCb(err ? err : body);
-    } else {
-      accessToken = JSON.parse(body);
-      accessToken.expiresAt = accessToken.expires_in * 1000 + Date.now();
-      delete accessToken.expires_in; // useless to us from this point on
-      authenticatedCb(accessToken);
+      // getNewAccessToken(appCreds, errCb, authenticatedCb);
+      try {
+        accessToken = await getNewAccessToken(appCreds);
+        resolve(accessToken);
+      } catch (e) {
+        reject(e)
+      }
     }
   });
 }
 
-var makeAuthenticatedApiRequest = function(creds, method, url, data, errCb, cb) {
-  authenticate(creds, console.error, function() {
-    var options = {
-      url: url,
-      method: method,
-      headers: {
-        'Authorization': 'Bearer ' + accessToken.access_token,
-        'Content-Type': 'application/json'
-      }
-    };
+let getNewAccessToken = function(appCreds) {
+  // Get access token for the first time and callback
+  let authStr = 'grant_type=client_credentials' +
+                '&client_id=' + appCreds.clientId +
+                '&client_secret=' + appCreds.clientSecret;
 
-    if (data) {
-      options.body = JSON.stringify(data);
-    }
-
-    request(options, function (err, res, body) {
+  return new Promise(function(resolve, reject) {
+    request({
+      url: 'https://api.helpscout.net/v2/oauth2/token?' + authStr,
+      method: 'POST'
+    }, function (err, res, body) {
       if (err || res.statusCode >= 400) {
         // either log the error returned, or the body if status != success
-        errCb(err ? err : body);
+        reject(err ? err : body);
       } else {
-        cb(res);
+        accessToken = JSON.parse(body);
+        accessToken.expiresAt = accessToken.expires_in * 1000 + Date.now();
+        delete accessToken.expires_in; // useless to us from this point on
+        resolve(accessToken);
       }
     });
+  });
+}
+
+let makeAuthenticatedApiRequest = function (creds, method, url, data, errCb, cb) {
+  return new Promise(async function(resolve, reject) {
+    try {
+      await authenticate(creds);
+
+      let options = {
+        url: url,
+        method: method,
+        headers: {
+          'Authorization': 'Bearer ' + accessToken.access_token,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      if (data) {
+        options.body = JSON.stringify(data);
+      }
+
+      request(options, function (err, res, body) {
+        if (err || res.statusCode >= 400) {
+          // either log the error returned, or the body if status != success
+          reject(err ? err : body);
+          errCb(err ? err : body);
+        } else {
+          cb ? cb(res) : resolve(res);
+        }
+      });
+    } catch (e) {
+      errCb ? errCb(e): reject(Error(e));
+    }
   });
 }
