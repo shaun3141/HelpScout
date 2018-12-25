@@ -39,6 +39,7 @@ It may look something like this when you're done:
 A full test suite is available for your convenience.
 
 **Step 1:** Modify **test/index.js** to provide your Client Id and Secret obtained above.
+
 **Step 2:** Run the tests
 
     npm test
