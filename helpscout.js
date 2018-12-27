@@ -128,7 +128,7 @@ HelpScoutClient.prototype.updatePut = function (obj, objId, data, parentObjType,
       await makeAuthenticatedApiRequest(
         appCreds,
         'PUT',
-        BASE_URL + parentUrl + obj + '/' + objId ? obJId : '',
+        BASE_URL + parentUrl + obj + '/' + (objId ? objId : ''),
         data
       );
       cb ? cb() : resolve(); // nothing to return
@@ -252,7 +252,7 @@ let makeAuthenticatedApiRequest = function (creds, method, url, data, errCb, cb)
       request(options, function (err, res, body) {
         if (err || res.statusCode >= 400) {
           // either log the error returned, or the body if status != success
-          errCb ? errCb(err): reject(Error(err));
+          errCb ? errCb(err ? err : res.body) : reject(err ? err : res.body);
         } else {
           cb ? cb(res) : resolve(res);
         }
