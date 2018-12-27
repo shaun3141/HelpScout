@@ -150,7 +150,7 @@ HelpScoutClient.updatePut(type, resourceId, data, parentType, parentId, error_ca
 ```
 **type:** Type of Resource to update ("conversations", "customers", ..)
 
-**resourceId:** Id of the resource you'd like to update.
+**resourceId:** Optional, Id of the resource you'd like to update. (i.e. Email Address for Customer)
 
 **data:** Object containing the resource data that will replace the current data
 
