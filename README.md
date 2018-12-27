@@ -90,7 +90,7 @@ await HelpScoutClient.create('notes', { "text" : "Example Conversation"}, "conve
 *Note: [No id is passed from Help Scout](https://developer.helpscout.com/mailbox-api/endpoints/conversations/threads/note/#response) when creating child objects like notes.*
 
 ## list();
-Get a list of Resources, this module handles the pagination and rate-limiting for you.
+Get a list of Resources, this module handles the pagination and rate-limiting for you. If no results are returned, an empty array is returned.
 ```
 HelpScoutClient.list(type, queryParams, parentType, parentId, error_callback, callback);
 ```

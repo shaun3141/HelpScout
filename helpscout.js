@@ -1,4 +1,4 @@
-var request = require('request');
+const request = require('request');
 
 // Constructor
 const HelpScoutClient = function(appCreds){
@@ -80,7 +80,14 @@ HelpScoutClient.prototype.list = function (obj, queryParams, parentObjType, pare
           pageNum++;
           isProcessing = false;
           numPages = JSON.parse(result.body)["page"]["totalPages"];
-          objArr = objArr.concat(JSON.parse(result.body)["_embedded"][obj]);
+          if (JSON.parse(result.body)["_embedded"] && JSON.parse(result.body)["_embedded"][obj]) {
+            // Add results to returned array
+            objArr = objArr.concat(JSON.parse(result.body)["_embedded"][obj]);
+          } else {
+            // no results returned
+            clearInterval(pager);
+            cb ? cb([]) : resolve([]);
+          }
         } catch (e) {
           clearInterval(pager);
           errCb ? errCb(e): reject(Error(e));
@@ -104,7 +111,7 @@ HelpScoutClient.prototype.get = function (obj, objId, embeddables, subObj, errCb
         ''
       );
       let body = resourceRes.body ? JSON.parse(resourceRes.body) : undefined;
-      let objGotten = body && body._embedded ? body._embedded[subObj] : body;
+      let objGotten = body && body._embedded && body._embedded[subObj] ? body._embedded[subObj] : body;
       cb ? cb(objGotten) : resolve(objGotten);
     } catch (e) {
       errCb ? errCb(e): reject(Error(e));
@@ -121,7 +128,7 @@ HelpScoutClient.prototype.updatePut = function (obj, objId, data, parentObjType,
       await makeAuthenticatedApiRequest(
         appCreds,
         'PUT',
-        BASE_URL + parentUrl + obj + '/' + objId,
+        BASE_URL + parentUrl + obj + '/' + objId ? obJId : '',
         data
       );
       cb ? cb() : resolve(); // nothing to return
@@ -194,7 +201,7 @@ let authenticate = function(appCreds) {
         accessToken = await getNewAccessToken(appCreds);
         resolve(accessToken);
       } catch (e) {
-        reject(e)
+        reject(Error(e));
       }
     }
   });
@@ -213,7 +220,7 @@ let getNewAccessToken = function(appCreds) {
     }, function (err, res, body) {
       if (err || res.statusCode >= 400) {
         // either log the error returned, or the body if status != success
-        reject(err ? err : body);
+        reject(Error(err ? err : body));
       } else {
         accessToken = JSON.parse(body);
         accessToken.expiresAt = accessToken.expires_in * 1000 + Date.now();
@@ -245,8 +252,7 @@ let makeAuthenticatedApiRequest = function (creds, method, url, data, errCb, cb)
       request(options, function (err, res, body) {
         if (err || res.statusCode >= 400) {
           // either log the error returned, or the body if status != success
-          reject(err ? err : body);
-          errCb(err ? err : body);
+          errCb ? errCb(err): reject(Error(err));
         } else {
           cb ? cb(res) : resolve(res);
         }
