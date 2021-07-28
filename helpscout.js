@@ -215,7 +215,7 @@ let getNewAccessToken = function(appCreds) {
 
   return new Promise(function(resolve, reject) {
     request({
-      url: 'https://api.helpscout.net/v2/oauth2/token?' + authStr,
+      url: BASE_URL + 'oauth2/token?' + authStr,
       method: 'POST'
     }, function (err, res, body) {
       if (err || res.statusCode >= 400) {
