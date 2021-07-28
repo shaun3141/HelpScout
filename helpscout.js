@@ -1,7 +1,7 @@
 const request = require('request');
 
 // Constructor
-const HelpScoutClient = function(appCreds){
+const HelpScoutClient = function (appCreds) {
   this.appCreds = appCreds;
 };
 
@@ -16,29 +16,29 @@ let accessToken = {
 
 // Methods
 HelpScoutClient.prototype.getAccessToken = function (errCb, cb) {
-  let appCreds = this.appCreds;
+  const appCreds = this.appCreds;
 
-  return new Promise(async function(resolve, reject) {
+  return new Promise(async function (resolve, reject) {
     try {
       await authenticate(appCreds);
       cb ? cb(accessToken) : resolve(accessToken);
     } catch (e) {
-      errCb ? errCb(e): reject(Error(e));
+      errCb ? errCb(e) : reject(Error(e));
     }
   });
-}
+};
 
-HelpScoutClient.prototype.rawApi = function(method, url, data, errCb, cb){
+HelpScoutClient.prototype.rawApi = function (method, url, data, errCb, cb) {
   return makeAuthenticatedApiRequest(this.appCreds, method, url, data, errCb, cb);
-}
+};
 
 HelpScoutClient.prototype.create = function (obj, data, parentObjType, parentObjId, errCb, cb) {
-  let parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
-  let appCreds = this.appCreds;
+  const parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  const appCreds = this.appCreds;
 
-  return new Promise(async function(resolve, reject) {
+  return new Promise(async function (resolve, reject) {
     try {
-      let resourceRes = await makeAuthenticatedApiRequest(
+      const resourceRes = await makeAuthenticatedApiRequest(
         appCreds,
         'POST',
         BASE_URL + parentUrl + obj,
@@ -46,22 +46,22 @@ HelpScoutClient.prototype.create = function (obj, data, parentObjType, parentObj
       );
       cb ? cb(resourceRes.headers['resource-id']) : resolve(resourceRes.headers['resource-id']);
     } catch (e) {
-      errCb ? errCb(e): reject(Error(e));
+      errCb ? errCb(e) : reject(Error(e));
     }
   });
-}
+};
 
 HelpScoutClient.prototype.list = function (obj, queryParams, parentObjType, parentObjId, errCb, cb) {
-  let parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
-  let appCreds = this.appCreds;
+  const parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  const appCreds = this.appCreds;
 
   let numPages = 1;
   let pageNum = 1;
   let isProcessing = false;
   let objArr = [];
 
-  return new Promise(function(resolve, reject) {
-    let pager = setInterval(async function() {
+  return new Promise(function (resolve, reject) {
+    const pager = setInterval(async function() {
       if (pageNum > numPages) {
         clearInterval(pager);
         cb ? cb(objArr) : resolve(objArr);
@@ -95,54 +95,54 @@ HelpScoutClient.prototype.list = function (obj, queryParams, parentObjType, pare
       }
     }, RATE_LIMIT);
   });
-}
+};
 
 HelpScoutClient.prototype.get = function (obj, objId, embeddables, subObj, errCb, cb) {
-  let embedQueryStr = embeddables ? '?embed=' + embeddables.join('&embed=') : '';
-  let appCreds = this.appCreds;
+  const embedQueryStr = embeddables ? '?embed=' + embeddables.join('&embed=') : '';
+  const appCreds = this.appCreds;
   subObj = subObj ? '/' + subObj : '';
 
-  return new Promise(async function(resolve, reject) {
+  return new Promise(async function (resolve, reject) {
     try {
-      let resourceRes = await makeAuthenticatedApiRequest(
+      const resourceRes = await makeAuthenticatedApiRequest(
         appCreds,
         'GET',
         BASE_URL + obj + '/' + objId + subObj + embedQueryStr,
         ''
       );
-      let body = resourceRes.body ? JSON.parse(resourceRes.body) : undefined;
-      let objGotten = body && body._embedded && body._embedded[subObj] ? body._embedded[subObj] : body;
+      const body = resourceRes.body ? JSON.parse(resourceRes.body) : undefined;
+      const objGotten = body && body._embedded && body._embedded[subObj] ? body._embedded[subObj] : body;
       cb ? cb(objGotten) : resolve(objGotten);
     } catch (e) {
-      errCb ? errCb(e): reject(Error(e));
+      errCb ? errCb(e) : reject(Error(e));
     }
   });
-}
+};
 
 HelpScoutClient.prototype.updatePut = function (obj, objId, data, parentObjType, parentObjId, errCb, cb) {
-  let parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
-  let appCreds = this.appCreds;
+  const parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  const appCreds = this.appCreds;
 
-  return new Promise(async function(resolve, reject) {
+  return new Promise(async function (resolve, reject) {
     try {
       await makeAuthenticatedApiRequest(
         appCreds,
         'PUT',
-        BASE_URL + parentUrl + obj + '/' + (objId ? objId : ''),
+        BASE_URL + parentUrl + obj + '/' + (objId || ''),
         data
       );
       cb ? cb() : resolve(); // nothing to return
     } catch (e) {
-      errCb ? errCb(e): reject(Error(e));
+      errCb ? errCb(e) : reject(Error(e));
     }
   });
-}
+};
 
 HelpScoutClient.prototype.updatePatch = function (obj, objId, data, parentObjType, parentObjId, errCb, cb) {
-  let parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
-  let appCreds = this.appCreds;
+  const parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  const appCreds = this.appCreds;
 
-  return new Promise(async function(resolve, reject) {
+  return new Promise(async function (resolve, reject) {
     try {
       await makeAuthenticatedApiRequest(
         appCreds,
@@ -152,15 +152,15 @@ HelpScoutClient.prototype.updatePatch = function (obj, objId, data, parentObjTyp
       );
       cb ? cb() : resolve(); // nothing to return
     } catch (e) {
-      errCb ? errCb(e): reject(Error(e));
+      errCb ? errCb(e) : reject(Error(e));
     }
   });
-}
+};
 
 HelpScoutClient.prototype.delete = function (obj, objId, errCb, cb) {
-  let appCreds = this.appCreds;
+  const appCreds = this.appCreds;
 
-  return new Promise(async function(resolve, reject) {
+  return new Promise(async function (resolve, reject) {
     try {
       await makeAuthenticatedApiRequest(
         appCreds,
@@ -170,16 +170,16 @@ HelpScoutClient.prototype.delete = function (obj, objId, errCb, cb) {
       );
       cb ? cb() : resolve(); // nothing to return
     } catch (e) {
-      errCb ? errCb(e): reject(Error(e));
+      errCb ? errCb(e) : reject(Error(e));
     }
   });
-}
+};
 
 HelpScoutClient.prototype.addNoteToConversation = function (conversationId, text, errCb, cb) {
   return this.create(
-    'notes', { "text" : text}, "conversations", conversationId, errCb, cb
+    'notes', { text: text }, 'conversations', conversationId, errCb, cb
   );
-}
+};
 
 module.exports = HelpScoutClient;
 
@@ -187,7 +187,7 @@ module.exports = HelpScoutClient;
 // ==== HELPERS ====
 // =================
 
-let authenticate = function(appCreds) {
+const authenticate = function(appCreds) {
   // TODO: Have a true singleton class to prevent multiple tokens being generated
   // will happen if multiple authenticate calls occur before first token comes back
   return new Promise(async function(resolve, reject) {
@@ -205,9 +205,9 @@ let authenticate = function(appCreds) {
       }
     }
   });
-}
+};
 
-let getNewAccessToken = function(appCreds) {
+const getNewAccessToken = function(appCreds) {
   // Get access token for the first time and callback
   let authStr = 'grant_type=client_credentials' +
                 '&client_id=' + appCreds.clientId +
@@ -229,9 +229,9 @@ let getNewAccessToken = function(appCreds) {
       }
     });
   });
-}
+};
 
-let makeAuthenticatedApiRequest = function (creds, method, url, data, errCb, cb) {
+const makeAuthenticatedApiRequest = function (creds, method, url, data, errCb, cb) {
   return new Promise(async function(resolve, reject) {
     try {
       await authenticate(creds);
@@ -261,4 +261,4 @@ let makeAuthenticatedApiRequest = function (creds, method, url, data, errCb, cb)
       errCb ? errCb(e): reject(Error(e));
     }
   });
-}
+};
