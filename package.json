@@ -23,8 +23,10 @@
     "url": "https://github.com/shaun3141/HelpScout/issues"
   },
   "homepage": "https://github.com/shaun3141/HelpScout#readme",
+  "semistandard": {},
   "devDependencies": {
-    "mocha": "^5.2.0"
+    "mocha": "^5.2.0",
+    "semistandard": "^16.0.1"
   },
   "dependencies": {
     "request": "^2.88.0"
