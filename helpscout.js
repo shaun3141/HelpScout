@@ -1,4 +1,4 @@
-const request = require('request');
+const axios = require('axios');
 
 // Constructor
 const HelpScoutClient = function (appCreds) {
@@ -15,40 +15,52 @@ let accessToken = {
 };
 
 // Methods
-HelpScoutClient.prototype.getAccessToken = function (errCb, cb) {
+HelpScoutClient.prototype.getAccessToken = async function (errCb, cb) {
   const appCreds = this.appCreds;
 
-  return new Promise(async function (resolve, reject) {
-    try {
-      await authenticate(appCreds);
-      cb ? cb(accessToken) : resolve(accessToken);
-    } catch (e) {
-      errCb ? errCb(e) : reject(Error(e));
+  try {
+    await authenticate(appCreds);
+    if (cb) {
+      cb(accessToken);
     }
-  });
+    return accessToken;
+  } catch (e) {
+    if (errCb) {
+      errCb(e);
+    } else {
+      throw Error(e);
+    }
+  }
 };
 
 HelpScoutClient.prototype.rawApi = function (method, url, data, errCb, cb) {
   return makeAuthenticatedApiRequest(this.appCreds, method, url, data, errCb, cb);
 };
 
-HelpScoutClient.prototype.create = function (obj, data, parentObjType, parentObjId, errCb, cb) {
+HelpScoutClient.prototype.create = async function (obj, data, parentObjType, parentObjId, errCb, cb) {
   const parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
   const appCreds = this.appCreds;
 
-  return new Promise(async function (resolve, reject) {
-    try {
-      const resourceRes = await makeAuthenticatedApiRequest(
-        appCreds,
-        'POST',
-        BASE_URL + parentUrl + obj,
-        data,
-      );
-      cb ? cb(resourceRes.headers['resource-id']) : resolve(resourceRes.headers['resource-id']);
-    } catch (e) {
-      errCb ? errCb(e) : reject(Error(e));
+  try {
+    const resourceRes = await makeAuthenticatedApiRequest(
+      appCreds,
+      'POST',
+      BASE_URL + parentUrl + obj,
+      data
+    );
+
+    if (cb) {
+      cb(resourceRes.headers['resource-id']);
     }
-  });
+
+    return resourceRes.headers['resource-id'];
+  } catch (e) {
+    if (errCb) {
+      errCb(e);
+    } else {
+      throw Error(e);
+    }
+  }
 };
 
 HelpScoutClient.prototype.list = function (obj, queryParams, parentObjType, parentObjId, errCb, cb) {
@@ -61,17 +73,20 @@ HelpScoutClient.prototype.list = function (obj, queryParams, parentObjType, pare
   let objArr = [];
 
   return new Promise(function (resolve, reject) {
-    const pager = setInterval(async function() {
+    const pager = setInterval(async function () {
       if (pageNum > numPages) {
         clearInterval(pager);
-        cb ? cb(objArr) : resolve(objArr);
+        if (cb) {
+          cb(objArr);
+        }
+        resolve(objArr);
       } else if (isProcessing) {
-        // do nothing, a request is currently pending
+      // do nothing, a request is currently pending
       } else {
         try {
-          let pageQuery = '?page=' + pageNum;
+          const pageQuery = '?page=' + pageNum;
           isProcessing = true;
-          let result = await makeAuthenticatedApiRequest(
+          const result = await makeAuthenticatedApiRequest(
             appCreds,
             'GET',
             BASE_URL + parentUrl + obj + (queryParams ? pageQuery + '&' + queryParams : pageQuery),
@@ -79,100 +94,134 @@ HelpScoutClient.prototype.list = function (obj, queryParams, parentObjType, pare
           );
           pageNum++;
           isProcessing = false;
-          numPages = JSON.parse(result.body)["page"]["totalPages"];
-          if (JSON.parse(result.body)["_embedded"] && JSON.parse(result.body)["_embedded"][obj]) {
-            // Add results to returned array
-            objArr = objArr.concat(JSON.parse(result.body)["_embedded"][obj]);
+          numPages = result.data.page.totalPages;
+          if (result.data._embedded && result.data._embedded[obj]) {
+          // Add results to returned array
+            objArr = objArr.concat(result.data._embedded[obj]);
           } else {
-            // no results returned
+          // no results returned
+            const res = [];
             clearInterval(pager);
-            cb ? cb([]) : resolve([]);
+            if (cb) {
+              cb(res);
+            }
+            return res;
           }
         } catch (e) {
           clearInterval(pager);
-          errCb ? errCb(e): reject(Error(e));
+          if (errCb) {
+            errCb(e);
+          } else {
+            reject(e);
+          }
         }
       }
     }, RATE_LIMIT);
   });
 };
 
-HelpScoutClient.prototype.get = function (obj, objId, embeddables, subObj, errCb, cb) {
+HelpScoutClient.prototype.get = async function (obj, objId, embeddables, subObj, errCb, cb) {
   const embedQueryStr = embeddables ? '?embed=' + embeddables.join('&embed=') : '';
   const appCreds = this.appCreds;
   subObj = subObj ? '/' + subObj : '';
 
-  return new Promise(async function (resolve, reject) {
-    try {
-      const resourceRes = await makeAuthenticatedApiRequest(
-        appCreds,
-        'GET',
-        BASE_URL + obj + '/' + objId + subObj + embedQueryStr,
-        ''
-      );
-      const body = resourceRes.body ? JSON.parse(resourceRes.body) : undefined;
-      const objGotten = body && body._embedded && body._embedded[subObj] ? body._embedded[subObj] : body;
-      cb ? cb(objGotten) : resolve(objGotten);
-    } catch (e) {
-      errCb ? errCb(e) : reject(Error(e));
+  try {
+    const resourceRes = await makeAuthenticatedApiRequest(
+      appCreds,
+      'GET',
+      BASE_URL + obj + '/' + objId + subObj + embedQueryStr,
+      ''
+    );
+
+    const objGotten = resourceRes.data && resourceRes.data._embedded && resourceRes.data._embedded[subObj] ? resourceRes.data._embedded[subObj] : resourceRes.data;
+    if (cb) {
+      cb(objGotten);
     }
-  });
+    return objGotten;
+  } catch (e) {
+    if (errCb) {
+      errCb(e);
+    } else {
+      throw e;
+    }
+  }
 };
 
-HelpScoutClient.prototype.updatePut = function (obj, objId, data, parentObjType, parentObjId, errCb, cb) {
+HelpScoutClient.prototype.updatePut = async function (obj, objId, data, parentObjType, parentObjId, errCb, cb) {
   const parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
   const appCreds = this.appCreds;
 
-  return new Promise(async function (resolve, reject) {
-    try {
-      await makeAuthenticatedApiRequest(
-        appCreds,
-        'PUT',
-        BASE_URL + parentUrl + obj + '/' + (objId || ''),
-        data
-      );
-      cb ? cb() : resolve(); // nothing to return
-    } catch (e) {
-      errCb ? errCb(e) : reject(Error(e));
+  try {
+    await makeAuthenticatedApiRequest(
+      appCreds,
+      'PUT',
+      BASE_URL + parentUrl + obj + '/' + (objId || ''),
+      data
+    );
+
+    // nothing to return
+    if (cb) {
+      cb();
     }
-  });
+    return;
+  } catch (e) {
+    if (errCb) {
+      errCb(e);
+    } else {
+      throw Error(e);
+    }
+  }
 };
 
-HelpScoutClient.prototype.updatePatch = function (obj, objId, data, parentObjType, parentObjId, errCb, cb) {
+HelpScoutClient.prototype.updatePatch = async function (obj, objId, data, parentObjType, parentObjId, errCb, cb) {
   const parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
   const appCreds = this.appCreds;
 
-  return new Promise(async function (resolve, reject) {
-    try {
-      await makeAuthenticatedApiRequest(
-        appCreds,
-        'PATCH',
-        BASE_URL + parentUrl + obj + '/' + objId,
-        data
-      );
-      cb ? cb() : resolve(); // nothing to return
-    } catch (e) {
-      errCb ? errCb(e) : reject(Error(e));
+  try {
+    await makeAuthenticatedApiRequest(
+      appCreds,
+      'PATCH',
+      BASE_URL + parentUrl + obj + '/' + objId,
+      data
+    );
+
+    // nothing to return
+    if (cb) {
+      cb();
     }
-  });
+    return;
+  } catch (e) {
+    if (errCb) {
+      errCb(e);
+    } else {
+      throw Error(e);
+    }
+  }
 };
 
-HelpScoutClient.prototype.delete = function (obj, objId, errCb, cb) {
+HelpScoutClient.prototype.delete = async function (obj, objId, errCb, cb) {
   const appCreds = this.appCreds;
 
-  return new Promise(async function (resolve, reject) {
-    try {
-      await makeAuthenticatedApiRequest(
-        appCreds,
-        'DELETE',
-        BASE_URL + obj + '/' + objId,
-        ''
-      );
-      cb ? cb() : resolve(); // nothing to return
-    } catch (e) {
-      errCb ? errCb(e) : reject(Error(e));
+  try {
+    await makeAuthenticatedApiRequest(
+      appCreds,
+      'DELETE',
+      BASE_URL + obj + '/' + objId,
+      ''
+    );
+
+    // nothing to return
+    if (cb) {
+      cb();
     }
-  });
+    return;
+  } catch (e) {
+    if (errCb) {
+      errCb(e);
+    } else {
+      throw Error(e);
+    }
+  }
 };
 
 HelpScoutClient.prototype.addNoteToConversation = function (conversationId, text, errCb, cb) {
@@ -187,78 +236,69 @@ module.exports = HelpScoutClient;
 // ==== HELPERS ====
 // =================
 
-const authenticate = function(appCreds) {
+const authenticate = async function (appCreds) {
   // TODO: Have a true singleton class to prevent multiple tokens being generated
   // will happen if multiple authenticate calls occur before first token comes back
-  return new Promise(async function(resolve, reject) {
-    if (accessToken.expiresAt > Date.now()) {
-      // Access Token should still be valid, do CB
-      resolve(accessToken);
-    } else {
-      // Get access token for the first time and callback
-      // getNewAccessToken(appCreds, errCb, authenticatedCb);
-      try {
-        accessToken = await getNewAccessToken(appCreds);
-        resolve(accessToken);
-      } catch (e) {
-        reject(Error(e));
-      }
-    }
-  });
-};
-
-const getNewAccessToken = function(appCreds) {
-  // Get access token for the first time and callback
-  let authStr = 'grant_type=client_credentials' +
-                '&client_id=' + appCreds.clientId +
-                '&client_secret=' + appCreds.clientSecret;
-
-  return new Promise(function(resolve, reject) {
-    request({
-      url: 'https://api.helpscout.net/v2/oauth2/token?' + authStr,
-      method: 'POST'
-    }, function (err, res, body) {
-      if (err || res.statusCode >= 400) {
-        // either log the error returned, or the body if status != success
-        reject(Error(err ? err : body));
-      } else {
-        accessToken = JSON.parse(body);
-        accessToken.expiresAt = accessToken.expires_in * 1000 + Date.now();
-        delete accessToken.expires_in; // useless to us from this point on
-        resolve(accessToken);
-      }
-    });
-  });
-};
-
-const makeAuthenticatedApiRequest = function (creds, method, url, data, errCb, cb) {
-  return new Promise(async function(resolve, reject) {
+  if (accessToken.expiresAt > Date.now()) {
+    // Access Token should still be valid, do CB
+    return accessToken;
+  } else {
+    // Get access token for the first time and callback
+    // getNewAccessToken(appCreds, errCb, authenticatedCb);
     try {
-      await authenticate(creds);
-
-      let options = {
-        url: url,
-        method: method,
-        headers: {
-          'Authorization': 'Bearer ' + accessToken.access_token,
-          'Content-Type': 'application/json'
-        }
-      };
-
-      if (data) {
-        options.body = JSON.stringify(data);
-      }
-
-      request(options, function (err, res, body) {
-        if (err || res.statusCode >= 400) {
-          // either log the error returned, or the body if status != success
-          errCb ? errCb(err ? err : res.body) : reject(err ? err : res.body);
-        } else {
-          cb ? cb(res) : resolve(res);
-        }
-      });
+      accessToken = await getNewAccessToken(appCreds);
+      return accessToken;
     } catch (e) {
-      errCb ? errCb(e): reject(Error(e));
+      throw Error(e);
+    }
+  }
+};
+
+const getNewAccessToken = async function (appCreds) {
+  // Get access token for the first time and callback
+  const res = await axios({
+    url: 'https://api.helpscout.net/v2/oauth2/token',
+    method: 'POST',
+    params: {
+      grant_type: 'client_credentials',
+      client_id: appCreds.clientId,
+      client_secret: appCreds.clientSecret
     }
   });
+
+  accessToken = res.data;
+  accessToken.expiresAt = res.data.expires_in * 1000 + Date.now();
+  delete accessToken.expires_in; // useless to us from this point on
+  return accessToken;
+};
+
+const makeAuthenticatedApiRequest = async function (creds, method, url, data, errCb, cb) {
+  try {
+    await authenticate(creds);
+
+    const options = {
+      url: url,
+      method: method,
+      headers: {
+        Authorization: 'Bearer ' + accessToken.access_token,
+        'Content-Type': 'application/json'
+      }
+    };
+
+    if (data) {
+      options.data = data;
+    }
+
+    const res = await axios(options);
+    if (cb) {
+      cb(res);
+    }
+    return res;
+  } catch (e) {
+    if (errCb) {
+      errCb(e);
+    } else {
+      throw e;
+    }
+  }
 };

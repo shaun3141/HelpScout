@@ -29,6 +29,6 @@
     "semistandard": "^16.0.1"
   },
   "dependencies": {
-    "request": "^2.88.0"
+    "axios": "^0.21.1"
   }
 }
