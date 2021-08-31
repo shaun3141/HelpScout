@@ -1,14 +1,14 @@
 {
-  "name": "helpscout-2.0",
-  "version": "1.1.5",
-  "description": "I built this Node.js SDK to wrap HelpScout's Mailbox 2.0 API methods to speed up development and get us building the fun stuff faster.",
-  "main": "helpscout.js",
+  "name": "node-helpscout",
+  "version": "1.1.6",
+  "description": "Simple wrapper class to access HelpScout's Mailbox API 2.0; handles Client Credentials Flow authentication",
+  "main": "index.js",
   "scripts": {
     "test": "mocha"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shaun3141/HelpScout.git"
+    "url": "git+https://github.com/mcdado/node-helpscout.git"
   },
   "keywords": [
     "helpscout",
@@ -20,12 +20,13 @@
   "author": "Shaun VanWeelden",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/shaun3141/HelpScout/issues"
+    "url": "https://github.com/mcdado/node-helpscout/issues"
   },
-  "homepage": "https://github.com/shaun3141/HelpScout#readme",
+  "homepage": "https://github.com/mcdado/node-helpscout#readme",
   "semistandard": {},
   "devDependencies": {
-    "mocha": "^5.2.0",
+    "dotenv": "^10.0.0",
+    "mocha": "^9.1.1",
     "semistandard": "^16.0.1"
   },
   "dependencies": {

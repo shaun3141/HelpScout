@@ -1,10 +1,17 @@
 /* eslint-env mocha */
 
-const assert = require('assert');
-const HelpScout = require('../helpscout.js');
+require('dotenv').config();
 
-const clientId = 'client-id';
-const clientSecret = 'client-secret';
+const assert = require('assert');
+
+const HelpScout = require('../index');
+
+const clientId = process.env.HELPSCOUT_CLIENT_ID;
+const clientSecret = process.env.HELPSCOUT_CLIENT_SECRET;
+
+if (!clientId || !clientSecret) {
+  throw new Error('Please add HELPSCOUT_CLIENT_ID and HELPSCOUT_CLIENT_SECRET in a file called ".env" in the root of the project');
+}
 
 let customerId;
 let conversationId;
