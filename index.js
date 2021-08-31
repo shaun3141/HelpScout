@@ -64,7 +64,7 @@ HelpScoutClient.prototype.create = async function (obj, data, parentObjType, par
 };
 
 HelpScoutClient.prototype.list = function (obj, queryParams, parentObjType, parentObjId, errCb, cb) {
-  const parentUrl = parentObjType && parentObjId ? parentObjType + '/' + parentObjId + '/' : '';
+  const parentUrl = parentObjType && parentObjId ? `${parentObjType}/${parentObjId}/` : '';
   const appCreds = this.appCreds;
 
   let numPages = 1;
@@ -246,8 +246,7 @@ const authenticate = async function (appCreds) {
     // Get access token for the first time and callback
     // getNewAccessToken(appCreds, errCb, authenticatedCb);
     try {
-      accessToken = await getNewAccessToken(appCreds);
-      return accessToken;
+      await getNewAccessToken(appCreds);
     } catch (e) {
       throw Error(e);
     }
