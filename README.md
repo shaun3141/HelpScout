@@ -12,7 +12,7 @@ This module supports the Client Credentials Flow authentication method which is 
 
 
 ## Installation
-```
+```sh
 $ npm install helpscout-2.0
 ```
 
@@ -25,13 +25,14 @@ First things first, [create an OAuth2 Application](https://developer.helpscout.c
 All API Methods are made available via a Help Scout *Client*. Once you create your OAuth2 application, we'll use the App Id and Secret provided to authenticate your API Calls.
 
 It may look something like this when you're done:
+```js
+var HelpScout = require('helpscout-2.0');
 
-    var HelpScout = require('helpscout-2.0');
-
-    var HelpScoutClient = new HelpScout({
-      "clientId": "26d567febd264ec8b7845a4adfXXXXXX",
-      "clientSecret": process.env.HELPSCOUT_APP_SECRET
-    });
+var HelpScoutClient = new HelpScout({
+  "clientId": "26d567febd264ec8b7845a4adfXXXXXX",
+  "clientSecret": process.env.HELPSCOUT_APP_SECRET
+});
+```
 
  🎉 Awesome, you now have a client that can use all of the helper methods below.
 
@@ -41,8 +42,9 @@ A full test suite is available for your convenience.
 **Step 1:** Modify **test/index.js** to provide your Client Id and Secret obtained above.
 
 **Step 2:** Run the tests
-
-    npm test
+```sh
+$ npm test
+```
 The output should look something like this:
 
 ![all tests passing](https://i.imgur.com/OonVJOE.png)
@@ -55,7 +57,7 @@ Examples of using await can be found in the tests above or examples below.
 # HTTP Methods
 ## create();
 Create a new Resource.
-```
+```js
 HelpScoutClient.create(type, data, parentType, parentId, error_callback, callback);
 ```
 **type:** Type of Resource to create ("conversations", "customers", ..)
@@ -71,7 +73,7 @@ HelpScoutClient.create(type, data, parentType, parentId, error_callback, callbac
 **callback:** Optional function called after successful creation, the id of the object created is passed to this function.
 
 **Example 1: Create a new Customer**
-```
+```js
 var customer = {
   "firstName" : "TestFirst",
   "lastName" : "TestLast",
@@ -84,14 +86,14 @@ HelpScoutClient.create('customers', customer, '', '', console.error, console.log
 ```
 
 **Example 2: Create a new note in a conversation**
-```
+```js
 await HelpScoutClient.create('notes', { "text" : "Example Conversation"}, "conversations", 712477488);
 ```
 *Note: [No id is passed from Help Scout](https://developer.helpscout.com/mailbox-api/endpoints/conversations/threads/note/#response) when creating child objects like notes.*
 
 ## list();
 Get a list of Resources, this module handles the pagination and rate-limiting for you. If no results are returned, an empty array is returned.
-```
+```js
 HelpScoutClient.list(type, queryParams, parentType, parentId, error_callback, callback);
 ```
 **type:** Type of Resource to list ("conversations", "customers", ..)
@@ -107,11 +109,11 @@ HelpScoutClient.list(type, queryParams, parentType, parentId, error_callback, ca
 **callback:** Optional function that is passed an array of all resources meeting the criteria.
 
 **Example 1: Get all Mailboxes**
-```
+```js
 let mailboxArr = await HelpScoutClient.list('mailboxes');
 ```
 **Example 2: Get all Customers**
-```
+```js
 HelpScoutClient.list('customers',null,'','',console.error, function(customers) {
   console.log("there are " + customers.length + " customers currently.");
 });
@@ -120,7 +122,7 @@ HelpScoutClient.list('customers',null,'','',console.error, function(customers) {
 
 ## get();
 Get a specific resource based on an id
-```
+```js
 HelpScoutClient.get(type, resourceId, embeddables, subType, error_callback, callback);
 ```
 **type:** Type of Resource to get ("conversations", "customers", ..)
@@ -136,16 +138,16 @@ HelpScoutClient.get(type, resourceId, embeddables, subType, error_callback, call
 **callback:** Optional function this is passed the resource requested to this function as an Object.
 
 **Example 1: Get Customers with Emails and Social Profiles**
-```
+```js
 HelpScoutClient.get('customers', 218297277, ['emails', 'social_profiles'], '', console.error, console.log);
 ```
 **Example 2: Get Folders in a Mailbox**
-```
+```js
 let folderArr = await HelpScoutClient.get('mailboxes', 166129, '', 'folders');
 ```
 ## updatePut();
 For certain Help Scout Endpoints, you'll want to use the "PUT" method when updating a Resource. The PUT method replaces all of the Resource's properties with the data you specify.
-```
+```js
 HelpScoutClient.updatePut(type, resourceId, data, parentType, parentId, error_callback, callback);
 ```
 **type:** Type of Resource to update ("conversations", "customers", ..)
@@ -163,15 +165,15 @@ HelpScoutClient.updatePut(type, resourceId, data, parentType, parentId, error_ca
 **callback:** Optional function called after successful update of a resource, Help Scout returns no data to pass to your function.
 
 **Example 1: Update Email Address for a Customer**
-```
-  await HelpScoutClient.updatePut("emails",292627333, {
-    "type" : "work",
-    "value" : "test4@gmail.com"
-  }, "customers", 218297277);
+```js
+await HelpScoutClient.updatePut("emails",292627333, {
+  "type" : "work",
+  "value" : "test4@gmail.com"
+}, "customers", 218297277);
 ```
 ## updatePatch();
 For certain Help Scout Endpoints, you'll want to use the "PATCH" method when updating a Resource. The PATCH method updates specific Resource properties while leaving other properties untouched. I highly recommend reviewing [HelpScout's documentation of patching](https://developer.helpscout.com/mailbox-api/endpoints/conversations/update/).
-```
+```js
 HelpScoutClient.updatePut(type, resourceId, data, parentType, parentId, error_callback, callback);
 ```
 **type:** Type of Resource to update ("conversations", "customers", ..)
@@ -189,22 +191,22 @@ HelpScoutClient.updatePut(type, resourceId, data, parentType, parentId, error_ca
 **callback:** Optional function called after successful update of a resource, Help Scout returns no data to pass to your function.
 
 **Example 1: Update Conversation Subject Line**
-```
-  await HelpScoutClient.updatePatch("conversations",712477488, {
-    "op" : "replace",
-    "path" : "/subject",
-    "value" : "Super cool new subject"
-  }, '', '');
+```js
+await HelpScoutClient.updatePatch("conversations",712477488, {
+  "op" : "replace",
+  "path" : "/subject",
+  "value" : "Super cool new subject"
+}, '', '');
 ```
 # Business Helpers
 Something I'd like to do more of with this module is further abstract basic use-cases to make them incredibly easy and clean to perform.
 
 For example, adding a note to a conversation. I feel it's a better experience to support something like:
-```
+```js
 await HelpScoutClient.addNoteToConversation(convoId, "Test Note");
 ```
 as opposed to
-```
+```js
 await HelpScoutClient.create('notes', { "text" : "Test Note"}, "conversations", convoId);
 ```
 The issue that makes this challenging to execute is what business logic gets implemented vs. which do we leave up to the developer.
@@ -215,7 +217,7 @@ To be figured out, but for now, "addNoteToConversation" is actually a real metho
 
 ## getAccessToken();
 Note: This should never need to be called by your code directly, but it's provided if you ever need to get or log the access token for testing or debugging.
-```
+```js
 HelpScoutClient.getAccessToken(error_callback, callback);
 ```
 **error_callback:** Optional function that is called if an error occurred during authentication, the error message / JSON will be passed to the function.
@@ -223,7 +225,7 @@ HelpScoutClient.getAccessToken(error_callback, callback);
 **callback:** Optional function called after successful retrieval or creation of a valid access token, the access token object is passed to this function.
 
 The Access Token object has the following properties:
-```
+```js
 {
 	token_type: 'bearer',
 	access_token: '0bd7a97cfbe24f99b65b4ba7d35b7c74',
@@ -235,7 +237,7 @@ The Access Token object has the following properties:
 ## rawApi();
 
 If you want to leverage the authentication that comes with the client, but need to query something super specific or not covered by this Module, this method is for you. It'll submit the request and make the callbacks on your behalf.
-```
+```js
 HelpScoutClient.rawApi(method, url, data, error_callback, callback);
 ```
 **method:** HTTP Method (GET, POST, DELETE, etc.)
